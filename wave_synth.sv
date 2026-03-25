@@ -42,11 +42,21 @@ module wave_synth (
     );
 
 	
-   logic [10:0] e_counter;
+    logic [10:0] e_counter;
 	logic [10:0] g_counter;
-   logic [10:0] c_counter;
+    logic [10:0] c_counter;
 
 	logic [23:0] square_out;
+
+    logic [23:0] triangle_wave;
+    logic [23:0] triangle_out;
+    logic [8:0]  tstep;
+
+    triangle_wave twave (
+        .CLOCK_50     (CLOCK_50),
+        .step         (tstep),
+        .triangle_wave(triangle_out)
+    );
 
 	always_ff @(posedge CLOCK_50) begin
 		 if (reset) begin
@@ -74,12 +84,19 @@ module wave_synth (
 	assign g_wave = (g_counter < 11'd122)  ? 24'h3FFFFF : 24'hC00000;
 	assign c_wave = (c_counter < 11'd184)  ? 24'h3FFFFF : 24'hC00000;
 
+	always_ff @(posedge CLOCK_50) begin
+		if (reset)
+			tstep <= 9'd292;
+		else begin
+			if (!KEY[2]) tstep <= tstep - 1;
+			if (!KEY[3]) tstep <= tstep + 1;
+		end
+	end
+
 	logic [23:0] mixed;
 	always_comb begin
 		 mixed = 24'd0;
-		 if (!KEY[1]) mixed = mixed + e_wave;
-		 if (!KEY[2]) mixed = mixed + g_wave;
-		 if (!KEY[3]) mixed = mixed + c_wave;
+		 if (!KEY[1]) mixed = mixed + triangle_wave;
 	end
 
 	assign dac_left  = mixed;
